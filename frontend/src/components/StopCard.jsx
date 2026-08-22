@@ -43,7 +43,7 @@ export default function StopCard({ stop, index, total, onDelete, onUpdateDates, 
   return (
     <div className={`rounded-lg bg-white p-4 shadow-sm border ${isSelected ? 'border-sky-500 ring-1 ring-sky-200' : 'border-transparent'}`}>
       <div className="flex items-start justify-between">
-        <div onClick={onSelect} className="cursor-pointer">
+        <div onClick={onSelect} className="cursor-pointer cursor-move select-none">
           <div className="text-lg font-semibold">{stop.city?.name || 'City'}</div>
           <div className="text-sm text-slate-500">{stop.city?.country}</div>
         </div>

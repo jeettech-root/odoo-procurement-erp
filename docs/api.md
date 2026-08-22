@@ -1,7 +1,7 @@
 # API
 
-This document will describe the backend API contract and endpoints.
+This document is reserved for the GlobeTrotter API contract.
 
-## Placeholder
+## Current status
 
-Add API documentation here when the application begins to take shape.
+No application-specific API routes have been implemented yet. The backend currently contains only the foundation health endpoint for startup validation.

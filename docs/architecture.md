@@ -1,9 +1,15 @@
 # Architecture
 
-This document will describe the system architecture for the ERP application.
+This document describes the foundation architecture for GlobeTrotter.
 
 ## Planned structure
 
-- Frontend powered by React + Vite + Tailwind CSS
-- Backend powered by Node.js + Express.js
-- MongoDB for persistence
+- Frontend: React + Vite + Tailwind CSS
+- Backend: Node.js + Express.js
+- Database: PostgreSQL with Prisma
+- Authentication: JWT + bcrypt (future implementation)
+- Charts: Recharts (future UI analytics)
+
+## Current status
+
+This repository is intentionally kept at the project foundation stage. Feature-level application architecture will be added later.

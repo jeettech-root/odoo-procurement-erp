@@ -18,6 +18,10 @@ coverage/
 .env.*
 !.env.example
 
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
 # OS / editor files
 .DS_Store
 Thumbs.db

@@ -1,9 +1,14 @@
-# Odoo Procurement ERP
+# GlobeTrotter
 
-This repository contains the basic project structure for a procurement ERP application using:
+GlobeTrotter is a personalized travel planning platform foundation. This repository currently contains the required project setup for future feature development.
 
-- Frontend: React + Vite + Tailwind CSS
+## Stack
+
+- Frontend: React + Vite + Tailwind CSS + Recharts
 - Backend: Node.js + Express.js
-- Database: MongoDB
+- Database: PostgreSQL + Prisma
+- Authentication: JWT + bcrypt (prepared for future implementation)
 
-This is a starter scaffold intended for future feature development.
+## Repository status
+
+This repository is intentionally kept at the project foundation stage. Application features are not implemented yet.

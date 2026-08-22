@@ -1,7 +1,7 @@
 # Demo Flow
 
-This document will outline the user demo flow and key application scenarios.
+This document will outline the future GlobeTrotter user experience and demo flow.
 
-## Placeholder
+## Current status
 
-Add demo steps and flow details here.
+No feature-specific demo flow has been implemented yet. This file is reserved for future user journeys and walkthrough documentation.

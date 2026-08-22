@@ -1,0 +1,18 @@
+{
+  "name": "globetrotter-backend",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "prisma:generate": "prisma generate --schema ../prisma/schema.prisma",
+    "prisma:validate": "prisma validate --schema ../prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "prisma": "^5.22.0"
+  }
+}

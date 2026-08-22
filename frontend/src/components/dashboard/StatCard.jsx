@@ -1,4 +1,4 @@
-export default function StatCard({ label, value, detail, accent = 'sky' }) {
+export default function StatCard({ label, value, detail, accent = 'sky', badge = 'PLANNING' }) {
   const accentStyles = {
     sky: 'bg-sky-50 text-sky-700 ring-1 ring-sky-100',
     emerald: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
@@ -14,7 +14,7 @@ export default function StatCard({ label, value, detail, accent = 'sky' }) {
           <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${accentStyles[accent] || accentStyles.sky}`}>
-          {label === 'Travel date' ? 'TBD' : 'PL' }
+          {badge}
         </span>
       </div>
       <p className="mt-3 text-sm text-slate-500">{detail}</p>

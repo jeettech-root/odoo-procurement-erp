@@ -8,12 +8,53 @@ import {
   YAxis,
 } from 'recharts';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import SidebarItem from '../components/dashboard/SidebarItem';
 import StatCard from '../components/dashboard/StatCard';
 import GlobalSearch from '../components/GlobalSearch';
 import NotificationCenter from '../components/NotificationCenter';
 import ProfileMenu from '../components/ProfileMenu';
 import { useAuth } from '../context/AuthContext';
+import { getItinerary } from '../services/itinerary.api';
+import { tripService } from '../services/trip.api';
+
+const formatDate = (value, includeYear = true) => {
+  if (!value) return 'Not specified';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not specified';
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(includeYear ? { year: 'numeric' } : {}),
+  }).format(date);
+};
+
+const formatDateRange = (startDate, endDate) => {
+  if (!startDate || !endDate) return 'Not specified';
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'Not specified';
+
+  const sameYear = start.getFullYear() === end.getFullYear();
+  return `${formatDate(startDate, !sameYear)} – ${formatDate(endDate, !sameYear)}`;
+};
+
+const selectRelevantTrip = (trips) => {
+  const now = new Date();
+  const activeTrips = trips.filter((trip) => {
+    const endDate = new Date(trip.endDate);
+    return !Number.isNaN(endDate.getTime()) && endDate >= now;
+  });
+
+  if (activeTrips.length) {
+    return [...activeTrips].sort((left, right) => new Date(left.startDate) - new Date(right.startDate))[0];
+  }
+
+  return [...trips]
+    .filter((trip) => !Number.isNaN(new Date(trip.endDate).getTime()))
+    .sort((left, right) => new Date(right.endDate) - new Date(left.endDate))[0] || null;
+};
 
 const getSidebarItems = (pathname) => {
   const budgetActive = pathname === '/budget' || pathname.includes('/budget');
@@ -52,11 +93,96 @@ const timelineItems = [
 ];
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [tripState, setTripState] = useState({ status: 'loading', trips: [], error: '' });
+  const [itineraryState, setItineraryState] = useState({ status: 'idle', stops: [], error: '' });
   const displayName = user?.name || 'Traveler';
   const sidebarItems = getSidebarItems(location.pathname);
+  const selectedTrip = selectRelevantTrip(tripState.trips);
+  const destination = itineraryState.stops[0]?.city?.name || 'Not planned yet';
+  const isLoading = tripState.status === 'loading' || itineraryState.status === 'loading';
+
+  const loadTrips = async () => {
+    setTripState({ status: 'loading', trips: [], error: '' });
+    setItineraryState({ status: 'idle', stops: [], error: '' });
+
+    try {
+      const trips = await tripService.getTrips(token);
+      setTripState({ status: 'success', trips: Array.isArray(trips) ? trips : [], error: '' });
+    } catch (error) {
+      setTripState({ status: 'error', trips: [], error: error.message || 'Unable to load your trips.' });
+    }
+  };
+
+  useEffect(() => {
+    if (token) loadTrips();
+  }, [token]);
+
+  useEffect(() => {
+    if (!selectedTrip) {
+      setItineraryState({ status: 'idle', stops: [], error: '' });
+      return undefined;
+    }
+
+    let isCurrent = true;
+    setItineraryState({ status: 'loading', stops: [], error: '' });
+    getItinerary(selectedTrip.id, token)
+      .then((stops) => {
+        if (isCurrent) setItineraryState({ status: 'success', stops: Array.isArray(stops) ? stops : [], error: '' });
+      })
+      .catch((error) => {
+        if (isCurrent) setItineraryState({ status: 'error', stops: [], error: error.message || 'Unable to load the trip itinerary.' });
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedTrip?.id, token]);
+
+  const renderTripContent = () => {
+    if (isLoading) return <p className="mt-6 text-sm text-sky-50">Loading trip details...</p>;
+
+    if (tripState.status === 'error' || itineraryState.status === 'error') {
+      return (
+        <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-sky-50">
+          <span>{tripState.error || itineraryState.error}</span>
+          <button type="button" onClick={loadTrips} className="rounded-lg bg-white/20 px-3 py-2 font-semibold hover:bg-white/30">
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    if (!selectedTrip) {
+      return (
+        <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-sky-50">
+          <span>No trips yet</span>
+          <button type="button" onClick={() => navigate('/create-trip')} className="rounded-lg bg-white/20 px-3 py-2 font-semibold hover:bg-white/30">
+            Create New Trip
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+          <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Destination</p>
+          <p className="mt-3 text-lg font-semibold">{destination}</p>
+        </div>
+        <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+          <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Departure</p>
+          <p className="mt-3 text-lg font-semibold">{formatDate(selectedTrip.startDate)}</p>
+        </div>
+        <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+          <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Travelers</p>
+          <p className="mt-3 text-lg font-semibold">Not specified</p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
@@ -104,7 +230,7 @@ export default function DashboardPage() {
                 ☀
               </div>
             </div>
-            <p className="mt-4 text-sm text-slate-600">Destination placeholder</p>
+            <p className="mt-4 text-sm text-slate-600">{destination}</p>
           </div>
         </aside>
 
@@ -145,33 +271,20 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">Upcoming trip</p>
-                    <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Nearest trip placeholder</h2>
+                    <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{selectedTrip?.title || 'No trips yet'}</h2>
                   </div>
                   <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-50">
-                    Draft
+                    PLANNING
                   </span>
                 </div>
 
-                <div className="mt-6 grid gap-4 md:grid-cols-3">
-                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-                    <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Destination</p>
-                    <p className="mt-3 text-lg font-semibold">TBD</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-                    <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Departure</p>
-                    <p className="mt-3 text-lg font-semibold">TBD</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-                    <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Travelers</p>
-                    <p className="mt-3 text-lg font-semibold">0 guests</p>
-                  </div>
-                </div>
+                {renderTripContent()}
               </section>
 
               <section className="grid gap-4 md:grid-cols-3">
-                <StatCard label="Travel date" value="TBD" detail="Placeholder date window" accent="sky" />
-                <StatCard label="Destination" value="TBD" detail="Placeholder destination" accent="emerald" />
-                <StatCard label="Travelers" value="0" detail="Placeholder traveler count" accent="violet" />
+                <StatCard label="Travel date" value={selectedTrip ? formatDateRange(selectedTrip.startDate, selectedTrip.endDate) : 'Not specified'} detail="Selected trip dates" accent="sky" badge={selectedTrip ? 'PLANNING' : 'NO TRIP'} />
+                <StatCard label="Destination" value={destination} detail="First itinerary city" accent="emerald" badge={selectedTrip ? 'PLANNING' : 'NO TRIP'} />
+                <StatCard label="Travelers" value="Not specified" detail="Not tracked for this trip" accent="violet" badge={selectedTrip ? 'PLANNING' : 'NO TRIP'} />
               </section>
 
               <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -285,20 +398,20 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
                     <span className="text-sm text-slate-600">Trip status</span>
                     <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-                      Draft
+                      PLANNING
                     </span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
                     <span className="text-sm text-slate-600">Budget</span>
-                    <span className="text-sm font-semibold text-slate-900">$0 placeholder</span>
+                    <span className="text-sm font-semibold text-slate-900">Not available</span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
                     <span className="text-sm text-slate-600">City</span>
-                    <span className="text-sm font-semibold text-slate-900">TBD</span>
+                    <span className="text-sm font-semibold text-slate-900">{destination}</span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
                     <span className="text-sm text-slate-600">People</span>
-                    <span className="text-sm font-semibold text-slate-900">0</span>
+                    <span className="text-sm font-semibold text-slate-900">Not specified</span>
                   </div>
                 </div>
               </section>

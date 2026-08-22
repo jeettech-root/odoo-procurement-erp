@@ -4,10 +4,12 @@ import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
-import TripDetailsPage from './pages/TripDetailsPage';
+import MyTripsPage from './pages/MyTripsPage';
+import ItineraryPage from './pages/ItineraryPage';
 import BudgetPage from './pages/BudgetPage';
 import TimelinePage from './pages/TimelinePage';
 import PublicItineraryPage from './pages/PublicItineraryPage';
+import ActivitiesPage from './pages/ActivitiesPage';
 
 function AppRoutes() {
   const { user, isLoading } = useAuth();
@@ -47,7 +49,30 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="/trips/:id" element={<ProtectedRoute><TripDetailsPage /></ProtectedRoute>} />
+      <Route
+        path="/trips"
+        element={
+          <ProtectedRoute>
+            <MyTripsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/itinerary"
+        element={
+          <ProtectedRoute>
+            <ItineraryPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/activities"
+        element={
+          <ProtectedRoute>
+            <ActivitiesPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/trips/:tripId/budget"
         element={

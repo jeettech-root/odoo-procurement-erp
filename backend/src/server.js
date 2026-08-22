@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import healthRoutes from './routes/health.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import tripRoutes from './routes/trip.routes.js';
 
 dotenv.config();
 
@@ -11,6 +12,7 @@ const port = Number(process.env.PORT || 3001);
 app.use(express.json());
 app.use('/api', healthRoutes);
 app.use('/api', authRoutes);
+app.use('/api', tripRoutes);
 
 app.get('/', (_req, res) => {
   res.json({

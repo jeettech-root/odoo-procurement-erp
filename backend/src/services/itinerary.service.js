@@ -58,11 +58,20 @@ export async function deleteCity(id) {
 
 // Activities
 export async function listActivities() {
-  return prisma.activity.findMany({ orderBy: { name: 'asc' } });
+  // include related city so frontend can display destination names
+  return prisma.activity.findMany({ orderBy: { name: 'asc' }, include: { city: true } });
+}
+
+export async function findActivityByCityAndName(cityId, name) {
+  if (!cityId || !name) return null;
+  return prisma.activity.findFirst({ where: { cityId, name: { equals: name.trim(), mode: 'insensitive' } } });
 }
 
 export async function createActivity(data) {
   const { name, description, cityId, durationMins, price } = data;
+  // basic validation is handled in controller, but ensure we don't throw duplicate DB error
+  const existing = await findActivityByCityAndName(cityId, name);
+  if (existing) return existing;
   return prisma.activity.create({ data: { name, description, cityId, durationMins, price } });
 }
 

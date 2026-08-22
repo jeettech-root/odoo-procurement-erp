@@ -99,3 +99,8 @@ export async function createCity(payload, token) {
 export async function listActivities(token) {
   return request(`${API_BASE}/activities`, {}, token);
 }
+
+export async function createActivity(payload, token) {
+  return request(`${API_BASE}/activities`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }, token);
+}
+

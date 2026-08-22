@@ -7,13 +7,58 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import SidebarItem from '../components/dashboard/SidebarItem';
 import StatCard from '../components/dashboard/StatCard';
 import GlobalSearch from '../components/GlobalSearch';
 import NotificationCenter from '../components/NotificationCenter';
 import ProfileMenu from '../components/ProfileMenu';
 import { useAuth } from '../context/AuthContext';
+import { budgetService } from '../services/budgetService';
+import { getItinerary } from '../services/itinerary.api';
+import { tripService } from '../services/tripService';
+import { getItinerary } from '../services/itinerary.api';
+import { tripService } from '../services/trip.api';
+
+const formatDate = (value, includeYear = true) => {
+  if (!value) return 'Not specified';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not specified';
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(includeYear ? { year: 'numeric' } : {}),
+  }).format(date);
+};
+
+const formatDateRange = (startDate, endDate) => {
+  if (!startDate || !endDate) return 'Not specified';
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'Not specified';
+
+  const sameYear = start.getFullYear() === end.getFullYear();
+  return `${formatDate(startDate, !sameYear)} – ${formatDate(endDate, !sameYear)}`;
+};
+
+const selectRelevantTrip = (trips) => {
+  const now = new Date();
+  const activeTrips = trips.filter((trip) => {
+    const endDate = new Date(trip.endDate);
+    return !Number.isNaN(endDate.getTime()) && endDate >= now;
+  });
+
+  if (activeTrips.length) {
+    return [...activeTrips].sort((left, right) => new Date(left.startDate) - new Date(right.startDate))[0];
+  }
+
+  return [...trips]
+    .filter((trip) => !Number.isNaN(new Date(trip.endDate).getTime()))
+    .sort((left, right) => new Date(right.endDate) - new Date(left.endDate))[0] || null;
+};
 
 const getSidebarItems = (pathname) => {
   const budgetActive = pathname === '/budget' || pathname.includes('/budget');
@@ -30,31 +75,51 @@ const getSidebarItems = (pathname) => {
   ];
 };
 
-const budgetData = [
-  { name: 'Jan', value: 40 },
-  { name: 'Feb', value: 52 },
-  { name: 'Mar', value: 48 },
-  { name: 'Apr', value: 70 },
-  { name: 'May', value: 60 },
-  { name: 'Jun', value: 78 },
-];
+const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
-const todoItems = [
-  { title: 'Finalize trip plan', meta: 'Checklist item placeholder', tag: 'Pending', status: 'pending' },
-  { title: 'Confirm arrival details', meta: 'Travel details placeholder', tag: 'Soon', status: 'upcoming' },
-  { title: 'Review budget notes', meta: 'Budget placeholder', tag: 'Draft', status: 'draft' },
-];
+// const formatDate = (value, formatter = dateFormatter) => {
+//   const date = value ? new Date(value) : null;
+//   return date && !Number.isNaN(date.getTime()) ? formatter.format(date) : 'Not available';
+// };
 
-const timelineItems = [
-  { time: '09:00', title: 'Departure window placeholder', detail: 'Travel timeline block' },
-  { time: '12:30', title: 'Arrival placeholder', detail: 'Travel checkpoint block' },
-  { time: '18:00', title: 'Evening plan placeholder', detail: 'Activity timeline block' },
-];
+const getDuration = (trip) => {
+  if (!trip?.startDate || !trip?.endDate) return 'Not available';
+  const days = Math.floor((new Date(trip.endDate) - new Date(trip.startDate)) / 86400000) + 1;
+  return days > 0 ? `${days} ${days === 1 ? 'day' : 'days'}` : 'Not available';
+};
+
+const getTripStatus = (trip) => {
+  if (!trip?.startDate || !trip?.endDate) return 'Not available';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(trip.startDate);
+  const end = new Date(trip.endDate);
+  if (end < today) return 'Completed';
+  return start <= today ? 'Active' : 'Upcoming';
+};
+
+const getTravelerCount = (trip) => trip?.travelerCount ?? trip?.travelers ?? trip?.participantCount ?? null;
+
+const groupExpensesByMonth = (expenses) => {
+  const months = new Map();
+  expenses.forEach((expense) => {
+    const date = new Date(expense.date || expense.createdAt);
+    if (Number.isNaN(date.getTime())) return;
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    const current = months.get(key) || { name: new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date), value: 0, sort: date.getTime() };
+    current.value += Number(expense.amount) || 0;
+    months.set(key, current);
+  });
+  return [...months.values()].sort((a, b) => a.sort - b.sort).map(({ name, value }) => ({ name, value: Number(value.toFixed(2)) }));
+};
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [tripState, setTripState] = useState({ status: 'loading', trips: [], error: '' });
+  const [itineraryState, setItineraryState] = useState({ status: 'idle', stops: [], error: '' });
   const displayName = user?.name || 'Traveler';
   const sidebarItems = getSidebarItems(location.pathname);
 
@@ -132,6 +197,7 @@ export default function DashboardPage() {
 
               <button
                 type="button"
+                onClick={() => navigate(trip ? `/trips/${trip.id}/budget` : '/trips')}
                 className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
               >
                 Quick overview
@@ -182,6 +248,7 @@ export default function DashboardPage() {
                   </div>
                   <button
                     type="button"
+                    onClick={() => navigate(trip ? `/itinerary?tripId=${trip.id}` : '/trips')}
                     className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600"
                   >
                     View all
@@ -189,10 +256,14 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="mt-5 space-y-3">
-                  {todoItems.map((item) => (
+                  {trip ? plannerItems.map((item) => (
                     <div
                       key={item.title}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(item.path)}
+                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') navigate(item.path); }}
+                      className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:bg-slate-100"
                     >
                       <div className="flex items-center gap-3">
                         <span
@@ -201,6 +272,7 @@ export default function DashboardPage() {
                             item.status === 'pending' ? 'bg-sky-500' : '',
                             item.status === 'upcoming' ? 'bg-amber-400' : '',
                             item.status === 'draft' ? 'bg-emerald-500' : '',
+                            item.status === 'done' ? 'bg-emerald-500' : '',
                           ].join(' ')}
                         />
                         <div>
@@ -213,7 +285,7 @@ export default function DashboardPage() {
                         {item.tag}
                       </span>
                     </div>
-                  ))}
+                  )) : <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">Create an upcoming trip to see planning actions.</p>}
                 </div>
               </section>
 
@@ -225,6 +297,7 @@ export default function DashboardPage() {
                   </div>
                   <button
                     type="button"
+                    onClick={() => navigate(trip ? `/trips/${trip.id}/timeline` : '/trips')}
                     className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600"
                   >
                     Calendar
@@ -232,18 +305,18 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="mt-5 space-y-4">
-                  {timelineItems.map((item) => (
-                    <div key={item.time} className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  {stops.length ? stops.slice(0, 3).map((stop, index) => (
+                    <div key={stop.id} className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
                       <div className="flex min-w-[56px] flex-col items-center">
-                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{item.time}</span>
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Day {index + 1}</span>
                         <div className="mt-2 h-10 w-px bg-slate-300" />
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-800">{item.title}</p>
-                        <p className="mt-1 text-sm text-slate-500">{item.detail}</p>
+                        <p className="font-semibold text-slate-800">{stop.city?.name || 'Unnamed stop'}</p>
+                        <p className="mt-1 text-sm text-slate-500">{formatDate(stop.startDate, shortDateFormatter)} – {formatDate(stop.endDate, shortDateFormatter)}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">{trip ? 'No itinerary stops yet.' : 'No upcoming trip selected.'}</p>}
                 </div>
               </section>
             </div>
@@ -257,6 +330,7 @@ export default function DashboardPage() {
                   </div>
                   <button
                     type="button"
+                    onClick={() => navigate(trip ? `/trips/${trip.id}/budget` : '/trips')}
                     className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600"
                   >
                     Monthly
@@ -264,18 +338,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="mt-5 h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={budgetData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                      <CartesianGrid vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                      <YAxis tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                      <Tooltip
-                        cursor={{ fill: '#dbeafe' }}
-                        contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
-                      />
-                      <Bar dataKey="value" radius={[10, 10, 0, 0]} fill="#38bdf8" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {chartData.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="#e2e8f0" /><XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} /><Tooltip cursor={{ fill: '#dbeafe' }} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }} formatter={(value) => [`₹${Number(value).toFixed(2)}`, 'Expenses']} /><Bar dataKey="value" radius={[10, 10, 0, 0]} fill="#38bdf8" /></BarChart></ResponsiveContainer> : <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 text-center text-sm text-slate-500">{trip ? 'No expenses have been recorded for this trip.' : 'Select an upcoming trip to view expenses.'}</div>}
                 </div>
               </section>
 

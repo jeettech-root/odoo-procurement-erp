@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import * as itineraryController from '../controllers/itinerary.controller.js';
+import { authenticate } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
 // Cities
 router.get('/cities', itineraryController.listCities);
 router.get('/search/cities', itineraryController.searchCities);
-router.post('/cities', itineraryController.createCity);
+router.post('/cities', authenticate, itineraryController.createCity);
 router.get('/cities/:id', itineraryController.getCity);
 router.delete('/cities/:id', itineraryController.deleteCity);
 

@@ -5,9 +5,45 @@ export async function listCities() {
   return prisma.city.findMany({ orderBy: { name: 'asc' } });
 }
 
+export async function findCityByNameAndCountry(name, country) {
+  if (!name) return null;
+  const where = country ? { name: { equals: name.trim(), mode: 'insensitive' }, country } : { name: { equals: name.trim(), mode: 'insensitive' } };
+  return prisma.city.findFirst({ where });
+}
+
 export async function createCity(data) {
-  const { name, country, slug, lat, lon, description } = data;
-  return prisma.city.create({ data: { name, country, slug, lat, lon, description } });
+  const { name, country, slug, lat, lon, description, region } = data;
+  // Build a description that includes optional region if provided
+  let finalDescription = description || null;
+  if (region) {
+    finalDescription = finalDescription ? `${finalDescription}\nregion: ${region}` : `region: ${region}`;
+  }
+
+  // normalize inputs
+  const cleanName = name ? name.trim() : '';
+  const cleanCountry = country ? country.trim() : null;
+
+  // Prevent duplicates (case-insensitive name + country)
+  const existing = await findCityByNameAndCountry(cleanName, cleanCountry);
+  if (existing) return existing;
+
+  // generate a simple slug
+  let baseSlug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  if (cleanCountry) baseSlug += `-${cleanCountry.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  let slugCandidate = baseSlug;
+  // ensure slug uniqueness (best-effort)
+  let attempt = 0;
+  while (true) {
+    try {
+      const created = await prisma.city.create({ data: { name: cleanName, country: cleanCountry, slug: slugCandidate, lat, lon, description: finalDescription } });
+      return created;
+    } catch (e) {
+      // If slug uniqueness causes an error, alter slug and retry a few times
+      attempt += 1;
+      if (attempt > 5) throw e;
+      slugCandidate = `${baseSlug}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+  }
 }
 
 export async function getCity(id) {

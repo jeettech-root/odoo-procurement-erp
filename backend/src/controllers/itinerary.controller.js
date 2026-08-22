@@ -14,9 +14,25 @@ export async function searchCities(req, res) {
 }
 
 export async function createCity(req, res) {
-  const payload = req.body;
-  const city = await service.createCity(payload);
-  res.status(201).json(city);
+  const payload = req.body || {};
+  const { name, country } = payload;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'name is required' });
+  if (!country || !country.trim()) return res.status(400).json({ error: 'country is required' });
+
+  // Check if city exists first
+  const existing = await service.findCityByNameAndCountry(name, country);
+  if (existing) {
+    // return existing city (client will use it)
+    return res.json(existing);
+  }
+
+  try {
+    const city = await service.createCity(payload);
+    return res.status(201).json(city);
+  } catch (e) {
+    console.error('Error creating city', e);
+    return res.status(500).json({ error: 'Could not create city' });
+  }
 }
 
 export async function getCity(req, res) {

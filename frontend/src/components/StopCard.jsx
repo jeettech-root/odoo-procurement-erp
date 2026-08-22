@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import * as api from '../services/itinerary.api';
 
 function formatDateInput(d) {
   if (!d) return '';
   const dt = new Date(d);
   const yyyy = dt.getFullYear();
-  const mm = String(dt.getMonth()+1).padStart(2,'0');
-  const dd = String(dt.getDate()).padStart(2,'0');
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export default function StopCard({ stop, index, total, onDelete, onUpdateDates, onMoveUp, onMoveDown, onAssignActivity, onRemoveAssignment, isSelected, onSelect }) {
+export default function StopCard({ stop, index, total, onDelete, onUpdateDates, onMoveUp, onMoveDown, onAssignActivity, onRemoveAssignment, isSelected, onSelect, token }) {
   const [start, setStart] = useState(formatDateInput(stop.startDate));
   const [end, setEnd] = useState(formatDateInput(stop.endDate));
   const [activities, setActivities] = useState(stop.activities || []);
@@ -30,7 +30,7 @@ export default function StopCard({ stop, index, total, onDelete, onUpdateDates, 
     if (!searchQ) return;
     setSearchLoading(true);
     try {
-      const res = await api.searchActivities(searchQ, stop.cityId);
+      const res = await api.searchActivities(searchQ, stop.cityId, token);
       setSearchResults(res || []);
     } catch (e) { alert('Search error: ' + (e.message || e)); }
     setSearchLoading(false);

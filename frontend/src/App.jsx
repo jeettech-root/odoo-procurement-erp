@@ -47,6 +47,24 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/trips/:id" element={<ProtectedRoute><TripDetailsPage /></ProtectedRoute>} />
+      <Route
+        path="/trips/:tripId/budget"
+        element={
+          <ProtectedRoute>
+            <BudgetPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trips/:tripId/timeline"
+        element={
+          <ProtectedRoute>
+            <TimelinePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/share/:shareToken" element={<PublicItineraryPage />} />
       <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
     </Routes>
   );

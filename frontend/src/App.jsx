@@ -4,6 +4,9 @@ import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
+import BudgetPage from './pages/BudgetPage';
+import TimelinePage from './pages/TimelinePage';
+import PublicItineraryPage from './pages/PublicItineraryPage';
 
 function AppRoutes() {
   const { user, isLoading } = useAuth();
@@ -43,6 +46,23 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/trips/:tripId/budget"
+        element={
+          <ProtectedRoute>
+            <BudgetPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trips/:tripId/timeline"
+        element={
+          <ProtectedRoute>
+            <TimelinePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/share/:shareToken" element={<PublicItineraryPage />} />
       <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
     </Routes>
   );

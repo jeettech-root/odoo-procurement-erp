@@ -39,8 +39,10 @@ model Trip {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  TripStop TripStop[]
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  TripStop  TripStop[]
+  expenses  Expense[]
+  share     TripShare?
 }
 
 model City {
@@ -115,4 +117,33 @@ model TripStopActivity {
   @@unique([stopId, position])
   @@index([stopId])
   @@index([activityId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  tripId      String
+  category    String
+  amount      Float
+  description String?
+  date        DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@index([category])
+}
+
+model TripShare {
+  id         String   @id @default(cuid())
+  tripId     String   @unique
+  shareToken String   @unique
+  isPublic   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([shareToken])
 }

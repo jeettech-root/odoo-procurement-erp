@@ -37,12 +37,8 @@ const formatCurrency = (value) => {
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
-<<<<<<< HEAD
-  const { user, token } = useAuth();
-=======
   const location = useLocation();
-  const { user, token, logout } = useAuth();
->>>>>>> 435e1e53ad1c381349ec18071f0cbb8361e7f4c8
+  const { user, token } = useAuth();
   const [activities, setActivities] = useState([]);
   const sidebarItems = getSidebarItems(location.pathname);
   const [cities, setCities] = useState([]);

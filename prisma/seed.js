@@ -3,6 +3,8 @@ const prisma = new PrismaClient();
 
 const cities = [
   { name: 'New Delhi', country: 'India', slug: 'new-delhi-india', lat: 28.6139, lon: 77.2090, description: 'Capital city with historic sites like Red Fort and India Gate.' },
+  { name: 'Ahmedabad', country: 'India', slug: 'ahmedabad-india', lat: 23.0225, lon: 72.5714, description: 'Largest city in Gujarat, known for heritage, food, and vibrant local culture.' },
+  { name: 'Mehsana', country: 'India', slug: 'mehsana-india', lat: 23.6000, lon: 72.4000, description: 'Historic city in north Gujarat with a strong regional heritage and easy access to tourist routes.' },
   { name: 'Mumbai', country: 'India', slug: 'mumbai-india', lat: 19.0760, lon: 72.8777, description: 'Coastal megacity known for Bollywood and the Gateway of India.' },
   { name: 'Bengaluru', country: 'India', slug: 'bengaluru-india', lat: 12.9716, lon: 77.5946, description: 'Tech hub with parks, cafes and vibrant nightlife.' },
   { name: 'Jaipur', country: 'India', slug: 'jaipur-india', lat: 26.9124, lon: 75.7873, description: 'Pink City famous for palaces, forts, and Rajasthani culture.' },
@@ -20,6 +22,16 @@ const activitiesBySlug = {
     { name: 'Red Fort tour', description: 'Guided visit to the 17th-century Red Fort.', durationMins: 90, price: 10.0 },
     { name: 'Street food walk in Old Delhi', description: 'Taste local favorites like chaat and paratha.', durationMins: 120, price: 20.0 },
     { name: 'Qutub Minar visit', description: 'Explore the UNESCO site and surrounding complex.', durationMins: 60, price: 8.0 },
+  ],
+  'ahmedabad-india': [
+    { name: 'Sabarmati Riverfront walk', description: 'Evening walk along the riverfront with local street food.', durationMins: 90, price: 0.0 },
+    { name: 'Adalaj Stepwell visit', description: 'Explore the historic stepwell architecture.', durationMins: 75, price: 8.0 },
+    { name: 'Gujarat craft market tour', description: 'Browse local textiles, handicrafts, and folk art.', durationMins: 120, price: 12.0 },
+  ],
+  'mehsana-india': [
+    { name: 'Mehsana heritage trail', description: 'Explore local heritage points and cultural highlights.', durationMins: 90, price: 5.0 },
+    { name: 'Regional food tasting', description: 'Taste Gujarati snacks and local delicacies.', durationMins: 60, price: 10.0 },
+    { name: 'Sunset viewpoint visit', description: 'Relaxing scenic evening stop with local atmosphere.', durationMins: 60, price: 0.0 },
   ],
   'mumbai-india': [
     { name: 'Gateway of India & Boat Ride', description: 'Boat trip to see the Gateway and Marine Drive.', durationMins: 90, price: 15.0 },

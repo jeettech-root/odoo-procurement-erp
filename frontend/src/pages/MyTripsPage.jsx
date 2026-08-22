@@ -47,12 +47,8 @@ const statusClasses = {
 
 export default function MyTripsPage() {
   const navigate = useNavigate();
-<<<<<<< HEAD
-  const { token, user } = useAuth();
-=======
   const location = useLocation();
-  const { token, user, logout } = useAuth();
->>>>>>> 435e1e53ad1c381349ec18071f0cbb8361e7f4c8
+  const { token, user } = useAuth();
   const [trips, setTrips] = useState([]);
   const sidebarItems = getSidebarItems(location.pathname);
   const [loading, setLoading] = useState(true);

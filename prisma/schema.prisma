@@ -39,5 +39,80 @@ model Trip {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  TripStop TripStop[]
+}
+
+model City {
+  id          String   @id @default(cuid())
+  name        String
+  country     String?
+  slug        String?  @unique
+  lat         Float?
+  lon         Float?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  activities Activity[]
+  tripStops  TripStop[]
+
+  @@unique([name, country])
+  @@index([name])
+  @@index([country])
+}
+
+model Activity {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  cityId       String
+  durationMins Int?
+  price        Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  city            City               @relation(fields: [cityId], references: [id])
+  stopAssignments TripStopActivity[]
+
+  @@unique([cityId, name])
+  @@index([cityId])
+}
+
+model TripStop {
+  id        String   @id @default(cuid())
+  tripId    String
+  cityId    String
+  startDate DateTime
+  endDate   DateTime
+  position  Int
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip       Trip               @relation(fields: [tripId], references: [id])
+  city       City               @relation(fields: [cityId], references: [id])
+  activities TripStopActivity[]
+
+  @@unique([tripId, position])
+  @@index([tripId])
+  @@index([cityId])
+}
+
+model TripStopActivity {
+  id         String   @id @default(cuid())
+  stopId     String
+  activityId String
+  position   Int
+  assignedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  stop     TripStop @relation(fields: [stopId], references: [id])
+  activity Activity @relation(fields: [activityId], references: [id])
+
+  @@unique([stopId, activityId])
+  @@unique([stopId, position])
+  @@index([stopId])
+  @@index([activityId])
 }

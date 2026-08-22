@@ -1,17 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarItem from '../components/dashboard/SidebarItem';
 import NotificationCenter from '../components/NotificationCenter';
 import ProfileMenu from '../components/ProfileMenu';
 import { useAuth } from '../context/AuthContext';
 import { listActivities, listCities } from '../services/itinerary.api';
 
-const sidebarItems = [
-  { label: 'Home', icon: '⌂', path: '/dashboard' },
-  { label: 'My Trips', icon: '✦', path: '/trips' },
-  { label: 'Itinerary', icon: '✈', path: '/itinerary' },
-  { label: 'Activities', icon: '☼', path: '/activities', active: true },
-];
+const getSidebarItems = (pathname) => {
+  const budgetActive = pathname === '/budget' || pathname.includes('/budget');
+  const calendarActive = pathname === '/timeline' || pathname.includes('/timeline');
+
+  return [
+    { label: 'Home', icon: '⌂', path: '/dashboard', active: pathname === '/dashboard' },
+    { label: 'My Trips', icon: '✦', path: '/trips', active: pathname === '/trips' },
+    { label: 'Itinerary', icon: '✈', path: '/itinerary', active: pathname === '/itinerary' || pathname.includes('/itinerary') },
+    { label: 'Activities', icon: '☼', path: '/activities', active: pathname === '/activities' },
+    { label: 'Budget', icon: '◌', path: '/budget', active: budgetActive },
+    { label: 'Calendar', icon: '☰', path: '/timeline', active: calendarActive },
+  ];
+};
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined || value === '') {
@@ -30,8 +37,14 @@ const formatCurrency = (value) => {
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const { user, token } = useAuth();
+=======
+  const location = useLocation();
+  const { user, token, logout } = useAuth();
+>>>>>>> 435e1e53ad1c381349ec18071f0cbb8361e7f4c8
   const [activities, setActivities] = useState([]);
+  const sidebarItems = getSidebarItems(location.pathname);
   const [cities, setCities] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');

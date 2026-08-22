@@ -7,7 +7,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarItem from '../components/dashboard/SidebarItem';
 import StatCard from '../components/dashboard/StatCard';
 import GlobalSearch from '../components/GlobalSearch';
@@ -15,15 +15,20 @@ import NotificationCenter from '../components/NotificationCenter';
 import ProfileMenu from '../components/ProfileMenu';
 import { useAuth } from '../context/AuthContext';
 
-const sidebarItems = [
-  { label: 'Home', icon: '⌂', path: '/dashboard', active: true },
-  { label: 'My Trips', icon: '✦', path: '/trips' },
-  { label: 'Itinerary', icon: '✈', path: '/itinerary' },
-  { label: 'Activities', icon: '☼', path: '/activities' },
-  { label: 'Budget', icon: '◌', path: '/trips/demo/budget' },
-  { label: 'Calendar', icon: '☰', path: '/trips/demo/timeline' },
-  { label: 'Profile', icon: '◉' },
-];
+const getSidebarItems = (pathname) => {
+  const budgetActive = pathname === '/budget' || pathname.includes('/budget');
+  const calendarActive = pathname === '/timeline' || pathname.includes('/timeline');
+
+  return [
+    { label: 'Home', icon: '⌂', path: '/dashboard', active: pathname === '/dashboard' },
+    { label: 'My Trips', icon: '✦', path: '/trips', active: pathname === '/trips' },
+    { label: 'Itinerary', icon: '✈', path: '/itinerary', active: pathname === '/itinerary' || pathname.includes('/itinerary') },
+    { label: 'Activities', icon: '☼', path: '/activities', active: pathname === '/activities' },
+    { label: 'Budget', icon: '◌', path: '/budget', active: budgetActive },
+    { label: 'Calendar', icon: '☰', path: '/timeline', active: calendarActive },
+    { label: 'Profile', icon: '◉', path: '/profile', active: pathname === '/profile' },
+  ];
+};
 
 const budgetData = [
   { name: 'Jan', value: 40 },
@@ -49,7 +54,9 @@ const timelineItems = [
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const displayName = user?.name || 'Traveler';
+  const sidebarItems = getSidebarItems(location.pathname);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">

@@ -11,7 +11,11 @@ import TimelinePage from './pages/TimelinePage';
 import PublicItineraryPage from './pages/PublicItineraryPage';
 import ActivitiesPage from './pages/ActivitiesPage';
 import CreateTripPage from './pages/CreateTripPage';
+<<<<<<< HEAD
 import TripDetailsPage from './pages/TripDetailsPage';
+=======
+import ProfilePage from './pages/ProfilePage';
+>>>>>>> 435e1e53ad1c381349ec18071f0cbb8361e7f4c8
 
 function AppRoutes() {
   const { user, isLoading } = useAuth();
@@ -84,10 +88,34 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/budget"
+        element={
+          <ProtectedRoute>
+            <BudgetPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/activities"
         element={
           <ProtectedRoute>
             <ActivitiesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/timeline"
+        element={
+          <ProtectedRoute>
+            <TimelinePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
           </ProtectedRoute>
         }
       />

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import healthRoutes from './routes/health.routes.js';
 import itineraryRoutes from './routes/itinerary.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import tripRoutes from './routes/trip.routes.js';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use('/api', healthRoutes);
 app.use('/api/itinerary', itineraryRoutes);
 app.use('/api', authRoutes);
+app.use('/api', tripRoutes);
 
 app.get('/', (_req, res) => {
   res.json({

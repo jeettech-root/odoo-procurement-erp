@@ -9,7 +9,6 @@ import {
 } from 'recharts';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import SidebarItem from '../components/dashboard/SidebarItem';
 import StatCard from '../components/dashboard/StatCard';
 import GlobalSearch from '../components/GlobalSearch';
@@ -19,46 +18,6 @@ import { useAuth } from '../context/AuthContext';
 import { budgetService } from '../services/budgetService';
 import { getItinerary } from '../services/itinerary.api';
 import { tripService } from '../services/tripService';
-import { getItinerary } from '../services/itinerary.api';
-import { tripService } from '../services/trip.api';
-
-const formatDate = (value, includeYear = true) => {
-  if (!value) return 'Not specified';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Not specified';
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    ...(includeYear ? { year: 'numeric' } : {}),
-  }).format(date);
-};
-
-const formatDateRange = (startDate, endDate) => {
-  if (!startDate || !endDate) return 'Not specified';
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'Not specified';
-
-  const sameYear = start.getFullYear() === end.getFullYear();
-  return `${formatDate(startDate, !sameYear)} – ${formatDate(endDate, !sameYear)}`;
-};
-
-const selectRelevantTrip = (trips) => {
-  const now = new Date();
-  const activeTrips = trips.filter((trip) => {
-    const endDate = new Date(trip.endDate);
-    return !Number.isNaN(endDate.getTime()) && endDate >= now;
-  });
-
-  if (activeTrips.length) {
-    return [...activeTrips].sort((left, right) => new Date(left.startDate) - new Date(right.startDate))[0];
-  }
-
-  return [...trips]
-    .filter((trip) => !Number.isNaN(new Date(trip.endDate).getTime()))
-    .sort((left, right) => new Date(right.endDate) - new Date(left.endDate))[0] || null;
-};
 
 const getSidebarItems = (pathname) => {
   const budgetActive = pathname === '/budget' || pathname.includes('/budget');
@@ -78,10 +37,10 @@ const getSidebarItems = (pathname) => {
 const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
-// const formatDate = (value, formatter = dateFormatter) => {
-//   const date = value ? new Date(value) : null;
-//   return date && !Number.isNaN(date.getTime()) ? formatter.format(date) : 'Not available';
-// };
+const formatDate = (value, formatter = dateFormatter) => {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? formatter.format(date) : 'Not available';
+};
 
 const getDuration = (trip) => {
   if (!trip?.startDate || !trip?.endDate) return 'Not available';
@@ -118,10 +77,81 @@ export default function DashboardPage() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [tripState, setTripState] = useState({ status: 'loading', trips: [], error: '' });
-  const [itineraryState, setItineraryState] = useState({ status: 'idle', stops: [], error: '' });
   const displayName = user?.name || 'Traveler';
   const sidebarItems = getSidebarItems(location.pathname);
+  const [trip, setTrip] = useState(null);
+  const [stops, setStops] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadDashboard = async () => {
+      if (!token) {
+        if (active) setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError('');
+        const trips = await tripService.getTrips(token);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const nearestTrip = (Array.isArray(trips) ? trips : [])
+          .filter((item) => item.endDate && new Date(item.endDate) >= today)
+          .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))[0] || null;
+
+        if (!nearestTrip) {
+          if (active) {
+            setTrip(null);
+            setStops([]);
+            setExpenses([]);
+          }
+          return;
+        }
+
+        const [itinerary, tripExpenses] = await Promise.all([
+          getItinerary(nearestTrip.id, token),
+          budgetService.listExpenses(nearestTrip.id, token),
+        ]);
+        if (active) {
+          setTrip(nearestTrip);
+          setStops(Array.isArray(itinerary) ? itinerary : []);
+          setExpenses(Array.isArray(tripExpenses) ? tripExpenses : []);
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(loadError.message || 'Unable to load dashboard data.');
+          setTrip(null);
+          setStops([]);
+          setExpenses([]);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadDashboard();
+    return () => { active = false; };
+  }, [token]);
+
+  const destination = trip?.destination || stops[0]?.city?.name || null;
+  const travelers = getTravelerCount(trip);
+  const status = getTripStatus(trip);
+  const chartData = useMemo(() => groupExpensesByMonth(expenses), [expenses]);
+  const totalExpenses = useMemo(() => expenses.reduce((total, expense) => total + (Number(expense.amount) || 0), 0), [expenses]);
+  const plannerItems = useMemo(() => {
+    if (!trip) return [];
+    const items = [];
+    if (!stops.length) items.push({ title: 'Add your first stop', meta: 'Choose a city for this trip', tag: 'Itinerary', status: 'pending', path: `/itinerary?tripId=${trip.id}` });
+    if (stops.length && !stops.some((stop) => stop.activities?.length)) items.push({ title: 'Add activities', meta: 'Plan something at one of your stops', tag: 'Itinerary', status: 'upcoming', path: `/itinerary?tripId=${trip.id}` });
+    if (!expenses.length) items.push({ title: 'Add an expense', meta: 'Start tracking your trip costs', tag: 'Budget', status: 'draft', path: `/trips/${trip.id}/budget` });
+    if (!items.length) items.push({ title: 'Review your trip plan', meta: 'Your itinerary and expenses are up to date', tag: 'Ready', status: 'done', path: `/trips/${trip.id}/timeline` });
+    return items;
+  }, [expenses.length, stops, trip]);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
@@ -169,7 +199,7 @@ export default function DashboardPage() {
                 ☀
               </div>
             </div>
-            <p className="mt-4 text-sm text-slate-600">Destination placeholder</p>
+            <p className="mt-4 text-sm text-slate-600">No destination selected</p>
           </div>
         </aside>
 
@@ -208,37 +238,15 @@ export default function DashboardPage() {
           <div className="mt-6 grid gap-6 xl:grid-cols-[1.55fr_0.95fr]">
             <div className="space-y-6">
               <section className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-sky-500 via-cyan-500 to-teal-400 p-5 text-white shadow-sm sm:p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">Upcoming trip</p>
-                    <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Nearest trip placeholder</h2>
-                  </div>
-                  <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-50">
-                    Draft
-                  </span>
-                </div>
-
-                <div className="mt-6 grid gap-4 md:grid-cols-3">
-                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-                    <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Destination</p>
-                    <p className="mt-3 text-lg font-semibold">TBD</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-                    <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Departure</p>
-                    <p className="mt-3 text-lg font-semibold">TBD</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-                    <p className="text-xs uppercase tracking-[0.2em] text-sky-100">Travelers</p>
-                    <p className="mt-3 text-lg font-semibold">0 guests</p>
-                  </div>
-                </div>
+                {loading ? <p className="text-sm font-medium text-sky-50">Loading your nearest trip...</p> : error ? <p className="text-sm font-medium text-sky-50">{error}</p> : trip ? (
+                  <button type="button" onClick={() => navigate(`/trips/${trip.id}/budget`)} className="w-full text-left">
+                    <div className="flex items-start justify-between gap-4"><div><p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">Upcoming trip</p><h2 className="mt-2 text-2xl font-bold sm:text-3xl">{trip.title}</h2></div><span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-50">{status}</span></div>
+                    <div className="mt-6 grid gap-4 md:grid-cols-3"><div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"><p className="text-xs uppercase tracking-[0.2em] text-sky-100">Destination</p><p className="mt-3 text-lg font-semibold">{destination || 'Not available'}</p></div><div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"><p className="text-xs uppercase tracking-[0.2em] text-sky-100">Departure</p><p className="mt-3 text-lg font-semibold">{formatDate(trip.startDate, shortDateFormatter)}</p></div><div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"><p className="text-xs uppercase tracking-[0.2em] text-sky-100">Travelers</p><p className="mt-3 text-lg font-semibold">{travelers === null ? 'Not available' : travelers}</p></div></div>
+                  </button>
+                ) : <div><p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">Upcoming trip</p><h2 className="mt-2 text-2xl font-bold sm:text-3xl">No upcoming trips</h2><p className="mt-3 text-sm text-sky-50">Create a trip to begin planning your next journey.</p><button type="button" onClick={() => navigate('/create-trip')} className="mt-5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-50">Create trip</button></div>}
               </section>
 
-              <section className="grid gap-4 md:grid-cols-3">
-                <StatCard label="Travel date" value="TBD" detail="Placeholder date window" accent="sky" />
-                <StatCard label="Destination" value="TBD" detail="Placeholder destination" accent="emerald" />
-                <StatCard label="Travelers" value="0" detail="Placeholder traveler count" accent="violet" />
-              </section>
+              {trip ? <section className="grid gap-4 md:grid-cols-3"><StatCard label="Travel date" value={formatDate(trip.startDate, shortDateFormatter)} detail={`${getDuration(trip)} · ends ${formatDate(trip.endDate, shortDateFormatter)}`} accent="sky" /><StatCard label="Destination" value={destination || 'Not available'} detail={destination ? `${stops.length} ${stops.length === 1 ? 'stop' : 'stops'} planned` : 'Add a stop to set a destination'} accent="emerald" /><StatCard label="Travelers" value={travelers === null ? 'Not available' : travelers} detail="Traveler count is shown when available" accent="violet" /></section> : null}
 
               <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <div className="flex items-center justify-between gap-3">
@@ -347,21 +355,19 @@ export default function DashboardPage() {
                 <div className="mt-5 space-y-4">
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
                     <span className="text-sm text-slate-600">Trip status</span>
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-                      Draft
-                    </span>
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">{trip ? status : 'Not available'}</span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
-                    <span className="text-sm text-slate-600">Budget</span>
-                    <span className="text-sm font-semibold text-slate-900">$0 placeholder</span>
+                    <span className="text-sm text-slate-600">Expenses</span>
+                    <span className="text-sm font-semibold text-slate-900">{trip ? `₹${totalExpenses.toFixed(2)}` : 'Not available'}</span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
                     <span className="text-sm text-slate-600">City</span>
-                    <span className="text-sm font-semibold text-slate-900">TBD</span>
+                    <span className="text-sm font-semibold text-slate-900">{destination || 'Not available'}</span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
                     <span className="text-sm text-slate-600">People</span>
-                    <span className="text-sm font-semibold text-slate-900">0</span>
+                    <span className="text-sm font-semibold text-slate-900">{travelers === null ? 'Not available' : travelers}</span>
                   </div>
                 </div>
               </section>

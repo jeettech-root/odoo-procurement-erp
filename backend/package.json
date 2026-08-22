@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "prisma:generate": "prisma generate --schema ../prisma/schema.prisma",
-    "prisma:validate": "prisma validate --schema ../prisma/schema.prisma"
+    "prisma:validate": "prisma validate --schema ../prisma/schema.prisma",
+    "postinstall": "prisma generate --schema ../prisma/schema.prisma"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

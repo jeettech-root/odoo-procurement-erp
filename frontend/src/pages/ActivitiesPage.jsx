@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SidebarItem from '../components/dashboard/SidebarItem';
+import NotificationCenter from '../components/NotificationCenter';
+import ProfileMenu from '../components/ProfileMenu';
 import { useAuth } from '../context/AuthContext';
 import { listActivities, listCities } from '../services/itinerary.api';
 
@@ -28,7 +30,7 @@ const formatCurrency = (value) => {
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
-  const { user, token, logout } = useAuth();
+  const { user, token } = useAuth();
   const [activities, setActivities] = useState([]);
   const [cities, setCities] = useState([]);
   const [search, setSearch] = useState('');
@@ -204,31 +206,9 @@ export default function ActivitiesPage() {
               </div>
 
               <div className="flex items-center justify-between gap-3 xl:justify-end">
-                <button
-                  type="button"
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg text-slate-600 transition hover:bg-slate-100"
-                  aria-label="Notifications"
-                >
-                  🔔
-                </button>
+                <NotificationCenter />
 
-                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-sm font-semibold text-white">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="hidden min-w-0 sm:block">
-                    <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Traveler</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  Logout
-                </button>
+                <ProfileMenu />
               </div>
             </div>
           </header>

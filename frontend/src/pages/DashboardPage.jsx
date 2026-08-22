@@ -10,6 +10,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import SidebarItem from '../components/dashboard/SidebarItem';
 import StatCard from '../components/dashboard/StatCard';
+import GlobalSearch from '../components/GlobalSearch';
+import NotificationCenter from '../components/NotificationCenter';
+import ProfileMenu from '../components/ProfileMenu';
 import { useAuth } from '../context/AuthContext';
 
 const sidebarItems = [
@@ -44,7 +47,7 @@ const timelineItems = [
 ];
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const displayName = user?.name || 'Traveler';
 
@@ -101,43 +104,12 @@ export default function DashboardPage() {
         <main className="flex-1">
           <header className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <span className="text-lg text-slate-400">⌕</span>
-                <input
-                  type="text"
-                  readOnly
-                  value=""
-                  placeholder="Search destinations, plans, or tasks"
-                  className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                />
-              </div>
+              <GlobalSearch />
 
               <div className="flex items-center justify-between gap-3 xl:justify-end">
-                <button
-                  type="button"
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg text-slate-600 transition hover:bg-slate-100"
-                  aria-label="Notifications"
-                >
-                  🔔
-                </button>
+                <NotificationCenter />
 
-                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-sm font-semibold text-white">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="hidden min-w-0 sm:block">
-                    <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Traveler</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  Logout
-                </button>
+                <ProfileMenu />
               </div>
             </div>
           </header>

@@ -113,6 +113,7 @@ export default function MyTripsPage() {
           </p>
           <button
             type="button"
+            onClick={() => navigate('/create-trip')}
             className="mt-5 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
           >
             New Trip
@@ -205,6 +206,7 @@ export default function MyTripsPage() {
 
           <button
             type="button"
+            onClick={() => navigate('/create-trip')}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"
           >
             <span className="text-base">＋</span>
@@ -292,6 +294,7 @@ export default function MyTripsPage() {
 
               <button
                 type="button"
+                onClick={() => navigate('/create-trip')}
                 className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
               >
                 New Trip

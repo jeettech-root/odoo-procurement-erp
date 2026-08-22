@@ -10,6 +10,7 @@ import BudgetPage from './pages/BudgetPage';
 import TimelinePage from './pages/TimelinePage';
 import PublicItineraryPage from './pages/PublicItineraryPage';
 import ActivitiesPage from './pages/ActivitiesPage';
+import CreateTripPage from './pages/CreateTripPage';
 
 function AppRoutes() {
   const { user, isLoading } = useAuth();
@@ -54,6 +55,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <MyTripsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-trip"
+        element={
+          <ProtectedRoute>
+            <CreateTripPage />
           </ProtectedRoute>
         }
       />

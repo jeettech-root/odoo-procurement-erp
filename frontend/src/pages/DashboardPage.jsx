@@ -64,6 +64,7 @@ export default function DashboardPage() {
 
           <button
             type="button"
+            onClick={() => navigate('/create-trip')}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"
           >
             <span className="text-base">＋</span>

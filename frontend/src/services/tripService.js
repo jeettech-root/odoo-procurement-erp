@@ -26,4 +26,26 @@ export const tripService = {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     }),
+  getTrip: (token, id) =>
+    request(`/api/trips/${id}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  createTrip: (token, data) =>
+    request('/api/trips', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  updateTrip: (token, id, data) =>
+    request(`/api/trips/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  deleteTrip: (token, id) =>
+    request(`/api/trips/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    }),
 };

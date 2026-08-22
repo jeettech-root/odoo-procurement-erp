@@ -1,6 +1,6 @@
 # GlobeTrotter
 
-GlobeTrotter is a personalized travel planning platform foundation. This repository currently contains the required project setup for future feature development.
+GlobeTrotter is a personalized travel planning platform foundation. This repository currently contains the required project setup for future feature development and scalability.
 
 ## Stack
 

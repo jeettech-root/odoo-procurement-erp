@@ -9,6 +9,19 @@ dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
+const allowedOrigin = 'http://localhost:5173';
+
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
 
 app.use(express.json());
 app.use('/api', healthRoutes);

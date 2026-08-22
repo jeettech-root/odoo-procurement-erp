@@ -5,6 +5,9 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import TripDetailsPage from './pages/TripDetailsPage';
+import BudgetPage from './pages/BudgetPage';
+import TimelinePage from './pages/TimelinePage';
+import PublicItineraryPage from './pages/PublicItineraryPage';
 
 function AppRoutes() {
   const { user, isLoading } = useAuth();
@@ -44,7 +47,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="/trips/:id" element={<ProtectedRoute><TripDetailsPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
     </Routes>
   );

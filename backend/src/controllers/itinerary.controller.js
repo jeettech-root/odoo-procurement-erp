@@ -62,9 +62,28 @@ export async function searchActivities(req, res) {
 }
 
 export async function createActivity(req, res) {
-  const payload = req.body;
-  const activity = await service.createActivity(payload);
-  res.status(201).json(activity);
+  const payload = req.body || {};
+  const { name, cityId } = payload;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'name is required' });
+  if (!cityId || !cityId.trim()) return res.status(400).json({ error: 'cityId is required' });
+
+  // Check if activity exists for the same city + name
+  const existing = await service.findActivityByCityAndName(cityId, name);
+  if (existing) {
+    // return existing so client can use it
+    return res.json(existing);
+  }
+
+  try {
+    const created = await service.createActivity(payload);
+    return res.status(201).json(created);
+  } catch (e) {
+    console.error('Error creating activity', e);
+    if (e.code === 'P2002') {
+      return res.status(409).json({ error: 'Activity already exists' });
+    }
+    return res.status(500).json({ error: 'Could not create activity' });
+  }
 }
 
 export async function getActivity(req, res) {

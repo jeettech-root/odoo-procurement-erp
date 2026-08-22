@@ -14,7 +14,7 @@ router.delete('/cities/:id', itineraryController.deleteCity);
 // Activities
 router.get('/activities', itineraryController.listActivities);
 router.get('/search/activities', itineraryController.searchActivities);
-router.post('/activities', itineraryController.createActivity);
+router.post('/activities', authenticate, itineraryController.createActivity);
 router.get('/activities/:id', itineraryController.getActivity);
 router.delete('/activities/:id', itineraryController.deleteActivity);
 

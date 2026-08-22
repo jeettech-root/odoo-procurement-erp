@@ -4,7 +4,7 @@ import SidebarItem from '../components/dashboard/SidebarItem';
 import NotificationCenter from '../components/NotificationCenter';
 import ProfileMenu from '../components/ProfileMenu';
 import { useAuth } from '../context/AuthContext';
-import { listActivities, listCities } from '../services/itinerary.api';
+import { listActivities, listCities, createActivity } from '../services/itinerary.api';
 
 const getSidebarItems = (pathname) => {
   const budgetActive = pathname === '/budget' || pathname.includes('/budget');
@@ -48,44 +48,43 @@ export default function ActivitiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Add Activity modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newActivity, setNewActivity] = useState({ name: '', description: '', price: '', durationMins: '', cityId: '' });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+
+  // Fetch activities and cities
+  const fetchData = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const [activityData, cityData] = await Promise.all([listActivities(token), listCities(token)]);
+      setActivities(Array.isArray(activityData) ? activityData : []);
+      setCities(Array.isArray(cityData) ? cityData : []);
+    } catch (loadError) {
+      setError(loadError.message || 'Unable to load activities.');
+      setActivities([]);
+      setCities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    let isMounted = true;
     if (!token) {
       setLoading(false);
       return undefined;
     }
 
-    let isMounted = true;
-
-    const loadActivities = async () => {
-      try {
-        setLoading(true);
-        setError('');
-
-        const [activityData, cityData] = await Promise.all([
-          listActivities(token),
-          listCities(token),
-        ]);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setActivities(Array.isArray(activityData) ? activityData : []);
-        setCities(Array.isArray(cityData) ? cityData : []);
-      } catch (loadError) {
-        if (isMounted) {
-          setError(loadError.message || 'Unable to load activities.');
-          setActivities([]);
-          setCities([]);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadActivities();
+    // call fetchData but guard isMounted to avoid state updates after unmount
+    fetchData();
 
     return () => {
       isMounted = false;
@@ -260,6 +259,7 @@ export default function ActivitiesPage() {
 
                 <button
                   type="button"
+                  onClick={() => { setShowAddModal(true); setCreateError(''); setNewActivity({ name: search || '', description: '', price: '', durationMins: '', cityId: '' }); }}
                   className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
                 >
                   Add activity
@@ -296,7 +296,7 @@ export default function ActivitiesPage() {
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {filteredActivities.map((activity) => {
                   const category = activity.category || activity.type || 'General';
-                  const location = activity.cityName || activity.location || activity.city || activity.destination || 'Location not specified';
+                const location = (activity.city && activity.city.name) || activity.cityName || activity.location || activity.city || activity.destination || 'Location not specified';
                   const price = formatCurrency(activity.price ?? activity.cost ?? activity.amount);
 
                   return (
@@ -347,6 +347,129 @@ export default function ActivitiesPage() {
               </div>
             )}
           </section>
+
+          {showAddModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
+                <h3 className="text-lg font-bold">Add Activity</h3>
+                <p className="mt-1 text-sm text-slate-600">Create a new activity and associate it with a city.</p>
+
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">Name *</label>
+                    <input
+                      type="text"
+                      value={newActivity.name}
+                      onChange={(e) => setNewActivity({ ...newActivity, name: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">Description</label>
+                    <textarea
+                      value={newActivity.description}
+                      onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Price (INR)</label>
+                      <input
+                        type="number"
+                        value={newActivity.price}
+                        onChange={(e) => setNewActivity({ ...newActivity, price: e.target.value })}
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Duration (mins)</label>
+                      <input
+                        type="number"
+                        value={newActivity.durationMins}
+                        onChange={(e) => setNewActivity({ ...newActivity, durationMins: e.target.value })}
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">City *</label>
+                    <select
+                      value={newActivity.cityId}
+                      onChange={(e) => setNewActivity({ ...newActivity, cityId: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    >
+                      <option value="">Select a city</option>
+                      {cities.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}{c.country ? `, ${c.country}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {createError && <p className="text-sm text-red-600">{createError}</p>}
+                </div>
+
+                <div className="mt-5 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium"
+                    disabled={creating}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setCreateError('');
+                      if (!newActivity.name || !newActivity.name.trim()) {
+                        setCreateError('Activity name is required');
+                        return;
+                      }
+                      if (!newActivity.cityId) {
+                        setCreateError('Please select a city');
+                        return;
+                      }
+
+                      setCreating(true);
+                      try {
+                        const payload = {
+                          name: newActivity.name.trim(),
+                          description: newActivity.description || null,
+                          price: newActivity.price === '' ? null : Number(newActivity.price),
+                          durationMins: newActivity.durationMins === '' ? null : Number(newActivity.durationMins),
+                          cityId: newActivity.cityId,
+                        };
+
+                        await createActivity(payload, token);
+
+                        // refresh list
+                        await fetchData();
+
+                        setShowAddModal(false);
+                      } catch (err) {
+                        setCreateError(err.message || 'Failed to create activity');
+                      } finally {
+                        setCreating(false);
+                      }
+                    }}
+                    className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+                    disabled={creating}
+                  >
+                    {creating ? 'Creating...' : 'Create activity'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
     </div>

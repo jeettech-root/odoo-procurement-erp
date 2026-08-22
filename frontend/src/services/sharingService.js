@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+﻿const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 async function request(endpoint, options = {}) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -24,19 +24,19 @@ export const sharingService = {
   getSharing: (tripId, token) =>
     request(`/api/trips/${tripId}/sharing`, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     }),
 
   enableSharing: (tripId, token) =>
     request(`/api/trips/${tripId}/sharing`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     }),
 
   disableSharing: (tripId, token) =>
     request(`/api/trips/${tripId}/sharing`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     }),
 
   getPublicItinerary: (shareToken) =>

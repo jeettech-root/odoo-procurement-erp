@@ -1,13 +1,11 @@
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/itinerary`;
+﻿const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/itinerary`;
 
 async function request(path, opts = {}, token) {
+  const headers = { Accept: 'application/json', ...(opts.headers || {}) };
+  if (token) headers.Authorization = 'Bearer ' + token;
   const res = await fetch(path, {
     ...opts,
-    headers: {
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts.headers || {}),
-    },
+    headers,
   });
 
   const text = await res.text();
@@ -92,6 +90,10 @@ export async function removeActivityFromStop(stopId, assignmentId, token) {
 
 export async function listCities(token) {
   return request(`${API_BASE}/cities`, {}, token);
+}
+
+export async function createCity(payload, token) {
+  return request(`${API_BASE}/cities`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }, token);
 }
 
 export async function listActivities(token) {

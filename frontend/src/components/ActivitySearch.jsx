@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import * as api from '../services/itinerary.api';
 
-export default function ActivitySearch({ selectedStop, onAddActivity }) {
+export default function ActivitySearch({ selectedStop, onAddActivity, token }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ export default function ActivitySearch({ selectedStop, onAddActivity }) {
     setError(null);
     try {
       const cityId = selectedStop ? selectedStop.cityId : undefined;
-      const r = await api.searchActivities(query, cityId);
+      const r = await api.searchActivities(query, cityId, token);
       setResults(r || []);
     } catch (e) {
       setError(e.message || String(e));

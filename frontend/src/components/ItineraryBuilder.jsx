@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import * as api from '../services/itinerary.api';
 import CitySearch from './CitySearch';
 import StopCard from './StopCard';
 import ActivitySearch from './ActivitySearch';
+import { useAuth } from '../context/AuthContext';
 
 export default function ItineraryBuilder({ tripId }) {
+  const { token } = useAuth();
   const [stops, setStops] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -16,17 +18,27 @@ export default function ItineraryBuilder({ tripId }) {
   useEffect(() => {
     if (!tripId) return;
     setLoading(true);
-    api.getItinerary(tripId).then(data => { setStops(data || []); setLoading(false); }).catch(e => { setError(e.message || String(e)); setLoading(false); });
-  }, [tripId, refreshKey]);
+    api
+      .getItinerary(tripId, token)
+      .then((data) => {
+        setStops(data || []);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e.message || String(e));
+        setLoading(false);
+      });
+  }, [tripId, refreshKey, token]);
 
-  const refresh = () => setRefreshKey(k => k + 1);
+  const refresh = () => setRefreshKey((k) => k + 1);
 
   const handleAddCityAsStop = async (cityId) => {
     try {
       // default dates: today and +1
       const today = new Date();
-      const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
-      await api.createStop({ tripId, cityId, startDate: today.toISOString(), endDate: tomorrow.toISOString() });
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+      await api.createStop({ tripId, cityId, startDate: today.toISOString(), endDate: tomorrow.toISOString() }, token);
       refresh();
     } catch (e) {
       alert('Error adding stop: ' + (e.message || e));
@@ -35,13 +47,13 @@ export default function ItineraryBuilder({ tripId }) {
 
   const handleDeleteStop = async (id) => {
     if (!confirm('Remove this stop?')) return;
-    await api.deleteStop(id);
+    await api.deleteStop(id, token);
     if (selectedStopId === id) setSelectedStopId(null);
     refresh();
   };
 
   const handleUpdateStopDates = async (id, startDate, endDate) => {
-    await api.updateStop(id, { startDate, endDate });
+    await api.updateStop(id, { startDate, endDate }, token);
     refresh();
   };
 
@@ -51,14 +63,14 @@ export default function ItineraryBuilder({ tripId }) {
     const [moved] = newStops.splice(idx, 1);
     const newIndex = direction === 'up' ? Math.max(0, idx - 1) : Math.min(newStops.length, idx + 1);
     newStops.splice(newIndex, 0, moved);
-    const order = newStops.map(s => s.id);
-    await api.reorderStops(tripId, order);
+    const order = newStops.map((s) => s.id);
+    await api.reorderStops(tripId, order, token);
     refresh();
   };
 
   const handleAssignActivity = async (stopId, activityId) => {
     try {
-      await api.assignActivityToStop(stopId, { activityId });
+      await api.assignActivityToStop(stopId, { activityId }, token);
       refresh();
     } catch (e) {
       if (e.status === 409) alert('Activity already assigned to this stop');
@@ -67,18 +79,20 @@ export default function ItineraryBuilder({ tripId }) {
   };
 
   const handleRemoveAssignment = async (stopId, assignmentId) => {
-    await api.removeActivityFromStop(stopId, assignmentId);
+    await api.removeActivityFromStop(stopId, assignmentId, token);
     refresh();
   };
 
-  const selectedStop = stops.find(s => s.id === selectedStopId) || null;
+  const selectedStop = stops.find((s) => s.id === selectedStopId) || null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold">Stops</h2>
-          <button onClick={refresh} className="text-sm text-sky-600">Refresh</button>
+          <button onClick={refresh} className="text-sm text-sky-600">
+            Refresh
+          </button>
         </div>
 
         {loading && <div className="rounded p-6 bg-white shadow-sm">Loading stops...</div>}
@@ -120,8 +134,8 @@ export default function ItineraryBuilder({ tripId }) {
                 // optimistic update
                 setStops(next);
                 try {
-                  const order = next.map(s => s.id);
-                  await api.reorderStops(tripId, order);
+                  const order = next.map((s) => s.id);
+                  await api.reorderStops(tripId, order, token);
                 } catch (err) {
                   alert('Could not save new order: ' + (err.message || err));
                   setStops(original);
@@ -141,11 +155,12 @@ export default function ItineraryBuilder({ tripId }) {
                 isSelected={selectedStopId === stop.id}
                 onSelect={() => setSelectedStopId(stop.id)}
                 onDelete={() => handleDeleteStop(stop.id)}
-                onUpdateDates={(s,e) => handleUpdateStopDates(stop.id, s, e)}
+                onUpdateDates={(s, e) => handleUpdateStopDates(stop.id, s, e)}
                 onMoveUp={() => handleReorder('up', idx)}
                 onMoveDown={() => handleReorder('down', idx)}
                 onAssignActivity={(activityId) => handleAssignActivity(stop.id, activityId)}
                 onRemoveAssignment={(assignmentId) => handleRemoveAssignment(stop.id, assignmentId)}
+                token={token}
               />
             </div>
           ))}
@@ -154,9 +169,9 @@ export default function ItineraryBuilder({ tripId }) {
 
       <aside className="rounded-lg bg-white p-4 shadow-sm">
         <h3 className="text-lg font-medium mb-3">Add a city</h3>
-        <CitySearch onAddCity={handleAddCityAsStop} />
+        <CitySearch onAddCity={handleAddCityAsStop} token={token} />
 
-        <ActivitySearch selectedStop={selectedStop} onAddActivity={handleAssignActivity} />
+        <ActivitySearch selectedStop={selectedStop} onAddActivity={handleAssignActivity} token={token} />
 
         <div className="mt-6">
           <h4 className="text-sm font-semibold text-slate-700">Tips</h4>

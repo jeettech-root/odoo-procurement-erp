@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+﻿const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 async function request(endpoint, options = {}) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -24,28 +24,28 @@ export const tripService = {
   getTrips: (token) =>
     request('/api/trips', {
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     }),
   getTrip: (token, id) =>
     request(`/api/trips/${id}`, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     }),
   createTrip: (token, data) =>
     request('/api/trips', {
       method: 'POST',
       body: JSON.stringify(data),
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     }),
   updateTrip: (token, id, data) =>
     request(`/api/trips/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     }),
   deleteTrip: (token, id) =>
     request(`/api/trips/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     }),
 };

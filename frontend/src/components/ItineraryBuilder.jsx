@@ -10,6 +10,8 @@ export default function ItineraryBuilder({ tripId }) {
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedStopId, setSelectedStopId] = useState(null);
+  const [draggingIndex, setDraggingIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   useEffect(() => {
     if (!tripId) return;
@@ -88,20 +90,64 @@ export default function ItineraryBuilder({ tripId }) {
 
         <div className="space-y-4">
           {stops.map((stop, idx) => (
-            <StopCard
+            <div
               key={stop.id}
-              stop={stop}
-              index={idx}
-              total={stops.length}
-              isSelected={selectedStopId === stop.id}
-              onSelect={() => setSelectedStopId(stop.id)}
-              onDelete={() => handleDeleteStop(stop.id)}
-              onUpdateDates={(s,e) => handleUpdateStopDates(stop.id, s, e)}
-              onMoveUp={() => handleReorder('up', idx)}
-              onMoveDown={() => handleReorder('down', idx)}
-              onAssignActivity={(activityId) => handleAssignActivity(stop.id, activityId)}
-              onRemoveAssignment={(assignmentId) => handleRemoveAssignment(stop.id, assignmentId)}
-            />
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', String(idx));
+                e.dataTransfer.effectAllowed = 'move';
+                e.currentTarget.classList.add('opacity-70');
+                setDraggingIndex(idx);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragOverIndex !== idx) setDragOverIndex(idx);
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                const from = Number(e.dataTransfer.getData('text/plain'));
+                const to = idx;
+                setDragOverIndex(null);
+                setDraggingIndex(null);
+                if (isNaN(from)) return;
+                if (from === to) return;
+
+                const original = [...stops];
+                const next = [...stops];
+                const [moved] = next.splice(from, 1);
+                next.splice(to, 0, moved);
+                // optimistic update
+                setStops(next);
+                try {
+                  const order = next.map(s => s.id);
+                  await api.reorderStops(tripId, order);
+                } catch (err) {
+                  alert('Could not save new order: ' + (err.message || err));
+                  setStops(original);
+                }
+              }}
+              onDragEnd={(e) => {
+                e.currentTarget.classList.remove('opacity-70');
+                setDragOverIndex(null);
+                setDraggingIndex(null);
+              }}
+              className={`${dragOverIndex === idx ? 'border-2 border-dashed border-sky-300 rounded-md' : ''}`}
+            >
+              <StopCard
+                stop={stop}
+                index={idx}
+                total={stops.length}
+                isSelected={selectedStopId === stop.id}
+                onSelect={() => setSelectedStopId(stop.id)}
+                onDelete={() => handleDeleteStop(stop.id)}
+                onUpdateDates={(s,e) => handleUpdateStopDates(stop.id, s, e)}
+                onMoveUp={() => handleReorder('up', idx)}
+                onMoveDown={() => handleReorder('down', idx)}
+                onAssignActivity={(activityId) => handleAssignActivity(stop.id, activityId)}
+                onRemoveAssignment={(assignmentId) => handleRemoveAssignment(stop.id, assignmentId)}
+              />
+            </div>
           ))}
         </div>
       </div>

@@ -1,14 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarItem from '../components/dashboard/SidebarItem';
 import { useAuth } from '../context/AuthContext';
 import { tripService } from '../services/tripService';
 
-const sidebarItems = [
-  { label: 'Home', icon: '⌂', path: '/dashboard' },
-  { label: 'My Trips', icon: '✦', path: '/trips', active: true },
-  { label: 'Itinerary', icon: '✈', path: '/itinerary' },
-];
+const getSidebarItems = (pathname) => {
+  const budgetActive = pathname === '/budget' || pathname.includes('/budget');
+  const calendarActive = pathname === '/timeline' || pathname.includes('/timeline');
+
+  return [
+    { label: 'Home', icon: '⌂', path: '/dashboard', active: pathname === '/dashboard' },
+    { label: 'My Trips', icon: '✦', path: '/trips', active: pathname === '/trips' },
+    { label: 'Itinerary', icon: '✈', path: '/itinerary', active: pathname === '/itinerary' || pathname.includes('/itinerary') },
+    { label: 'Budget', icon: '◌', path: '/budget', active: budgetActive },
+    { label: 'Calendar', icon: '☰', path: '/timeline', active: calendarActive },
+  ];
+};
 
 const formatDate = (value) => {
   if (!value) {
@@ -37,8 +44,10 @@ const statusClasses = {
 
 export default function MyTripsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token, user, logout } = useAuth();
   const [trips, setTrips] = useState([]);
+  const sidebarItems = getSidebarItems(location.pathname);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -176,13 +185,29 @@ export default function MyTripsPage() {
 
               {trip.description ? <p className="mt-4 text-sm text-slate-600">{trip.description}</p> : null}
 
-              <button
-                type="button"
-                onClick={() => navigate(`/trips/${trip.id}/budget`)}
-                className="mt-5 w-full rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
-              >
-                Open trip
-              </button>
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/itinerary?tripId=${trip.id}`)}
+                  className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
+                >
+                  Open trip
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/budget?tripId=${trip.id}`)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                  Budget
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/timeline?tripId=${trip.id}`)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                  Calendar
+                </button>
+              </div>
             </article>
           );
         })}

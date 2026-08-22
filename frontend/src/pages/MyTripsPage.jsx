@@ -264,7 +264,7 @@ export default function MyTripsPage() {
                 ☀
               </div>
             </div>
-            <p className="mt-4 text-sm text-slate-600">No destination selected</p>
+            <p className="mt-4 text-sm text-slate-600">Destination placeholder</p>
           </div>
         </aside>
 

@@ -28,7 +28,7 @@ const formatCurrency = (value) => {
   if (typeof value === 'number') {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'INR',
+      currency: 'USD',
     }).format(value);
   }
 
@@ -196,7 +196,7 @@ export default function ActivitiesPage() {
                 ☀
               </div>
             </div>
-            <p className="mt-4 text-sm text-slate-600">No destination selected</p>
+            <p className="mt-4 text-sm text-slate-600">Destination placeholder</p>
           </div>
         </aside>
 
@@ -296,7 +296,7 @@ export default function ActivitiesPage() {
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {filteredActivities.map((activity) => {
                   const category = activity.category || activity.type || 'General';
-                  const location = activity.cityName || activity.location || activity.city || activity.destination || 'Location not specified';
+                  const location = activity.cityName || activity.location || activity.city || activity.destination || 'Location TBD';
                   const price = formatCurrency(activity.price ?? activity.cost ?? activity.amount);
 
                   return (
